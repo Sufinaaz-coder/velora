@@ -1,0 +1,676 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: SheLaunch AI - Business enablement platform API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: ai
+    description: AI generation operations
+  - name: dashboard
+    description: Dashboard and analytics
+  - name: trending
+    description: Trending business niches
+  - name: history
+    description: Saved generations history
+  - name: realtime
+    description: Realtime Valkey stats
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /ai/business-launch:
+    post:
+      operationId: generateBusinessLaunch
+      tags: [ai]
+      summary: Generate AI business launch content
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BusinessLaunchInput"
+      responses:
+        "200":
+          description: Generated business launch content
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BusinessLaunchResult"
+        "429":
+          description: Rate limited
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /ai/campaign:
+    post:
+      operationId: generateCampaign
+      tags: [ai]
+      summary: Generate festival/seasonal campaign content
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CampaignInput"
+      responses:
+        "200":
+          description: Generated campaign content
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CampaignResult"
+        "429":
+          description: Rate limited
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /ai/conversations:
+    get:
+      operationId: listConversations
+      tags: [ai]
+      summary: List all AI assistant conversations
+      responses:
+        "200":
+          description: List of conversations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Conversation"
+    post:
+      operationId: createConversation
+      tags: [ai]
+      summary: Create a new AI assistant conversation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConversationInput"
+      responses:
+        "201":
+          description: Created conversation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Conversation"
+
+  /ai/conversations/{id}:
+    get:
+      operationId: getConversation
+      tags: [ai]
+      summary: Get conversation with messages
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Conversation with messages
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConversationWithMessages"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteConversation
+      tags: [ai]
+      summary: Delete a conversation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /ai/conversations/{id}/messages:
+    get:
+      operationId: listMessages
+      tags: [ai]
+      summary: List messages in a conversation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of messages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Message"
+    post:
+      operationId: sendMessage
+      tags: [ai]
+      summary: Send message and get AI response (SSE stream)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MessageInput"
+      responses:
+        "200":
+          description: SSE stream of assistant response chunks
+          content:
+            text/event-stream: {}
+
+  /dashboard/analytics:
+    get:
+      operationId: getDashboardAnalytics
+      tags: [dashboard]
+      summary: Get dashboard analytics overview
+      responses:
+        "200":
+          description: Dashboard analytics data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardAnalytics"
+
+  /trending:
+    get:
+      operationId: getTrending
+      tags: [trending]
+      summary: Get trending business niches
+      responses:
+        "200":
+          description: Trending niches list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TrendingNiche"
+
+  /history:
+    get:
+      operationId: listHistory
+      tags: [history]
+      summary: List saved generations
+      responses:
+        "200":
+          description: List of saved generations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SavedGeneration"
+    post:
+      operationId: saveGeneration
+      tags: [history]
+      summary: Save a generation to history
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SavedGenerationInput"
+      responses:
+        "201":
+          description: Saved generation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SavedGeneration"
+
+  /history/{id}:
+    delete:
+      operationId: deleteGeneration
+      tags: [history]
+      summary: Delete a saved generation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /realtime/stats:
+    get:
+      operationId: getRealtimeStats
+      tags: [realtime]
+      summary: Get realtime Valkey-powered stats
+      responses:
+        "200":
+          description: Realtime stats including cache hits, active users, top prompts
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RealtimeStats"
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    BusinessLaunchInput:
+      type: object
+      properties:
+        businessIdea:
+          type: string
+        sessionId:
+          type: ["string", "null"]
+      required:
+        - businessIdea
+
+    BusinessLaunchResult:
+      type: object
+      properties:
+        businessNames:
+          type: array
+          items:
+            type: string
+        slogans:
+          type: array
+          items:
+            type: string
+        brandVoice:
+          type: string
+        instagramBio:
+          type: string
+        targetAudience:
+          type: string
+        pricingSuggestions:
+          type: array
+          items:
+            type: string
+        hashtags:
+          type: array
+          items:
+            type: string
+        launchStrategy:
+          type: string
+        productIdeas:
+          type: array
+          items:
+            type: string
+        whatsappDescription:
+          type: string
+        seoKeywords:
+          type: array
+          items:
+            type: string
+        marketingCaptions:
+          type: array
+          items:
+            type: string
+        packagingSuggestions:
+          type: string
+        fromCache:
+          type: boolean
+        cacheKey:
+          type: ["string", "null"]
+      required:
+        - businessNames
+        - slogans
+        - brandVoice
+        - instagramBio
+        - targetAudience
+        - pricingSuggestions
+        - hashtags
+        - launchStrategy
+        - productIdeas
+        - whatsappDescription
+        - seoKeywords
+        - marketingCaptions
+        - packagingSuggestions
+        - fromCache
+
+    CampaignInput:
+      type: object
+      properties:
+        festival:
+          type: string
+        businessContext:
+          type: ["string", "null"]
+        tone:
+          type: string
+          enum: [luxury, minimal, cute, bold]
+        sessionId:
+          type: ["string", "null"]
+      required:
+        - festival
+        - tone
+
+    CampaignResult:
+      type: object
+      properties:
+        offerIdeas:
+          type: array
+          items:
+            type: string
+        captions:
+          type: array
+          items:
+            type: string
+        posterText:
+          type: array
+          items:
+            type: string
+        reelIdeas:
+          type: array
+          items:
+            type: string
+        ctaCopy:
+          type: array
+          items:
+            type: string
+        hashtags:
+          type: array
+          items:
+            type: string
+        whatsappPromos:
+          type: array
+          items:
+            type: string
+        emailCampaign:
+          type: string
+        fromCache:
+          type: boolean
+      required:
+        - offerIdeas
+        - captions
+        - posterText
+        - reelIdeas
+        - ctaCopy
+        - hashtags
+        - whatsappPromos
+        - emailCampaign
+        - fromCache
+
+    Conversation:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - title
+        - createdAt
+        - updatedAt
+
+    ConversationInput:
+      type: object
+      properties:
+        title:
+          type: string
+      required:
+        - title
+
+    ConversationWithMessages:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        messages:
+          type: array
+          items:
+            $ref: "#/components/schemas/Message"
+      required:
+        - id
+        - title
+        - createdAt
+        - updatedAt
+        - messages
+
+    Message:
+      type: object
+      properties:
+        id:
+          type: integer
+        conversationId:
+          type: integer
+        role:
+          type: string
+        content:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - conversationId
+        - role
+        - content
+        - createdAt
+
+    MessageInput:
+      type: object
+      properties:
+        content:
+          type: string
+      required:
+        - content
+
+    DashboardAnalytics:
+      type: object
+      properties:
+        totalGenerations:
+          type: integer
+        totalCampaigns:
+          type: integer
+        totalConversations:
+          type: integer
+        cacheHitRate:
+          type: number
+        topBusinessIdeas:
+          type: array
+          items:
+            type: string
+        topFestivals:
+          type: array
+          items:
+            type: string
+        recentActivity:
+          type: array
+          items:
+            $ref: "#/components/schemas/ActivityItem"
+        launchReadinessScore:
+          type: integer
+        engagementScore:
+          type: integer
+      required:
+        - totalGenerations
+        - totalCampaigns
+        - totalConversations
+        - cacheHitRate
+        - topBusinessIdeas
+        - topFestivals
+        - recentActivity
+        - launchReadinessScore
+        - engagementScore
+
+    ActivityItem:
+      type: object
+      properties:
+        type:
+          type: string
+        description:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+      required:
+        - type
+        - description
+        - timestamp
+
+    TrendingNiche:
+      type: object
+      properties:
+        name:
+          type: string
+        count:
+          type: integer
+        trend:
+          type: string
+          enum: [up, down, stable]
+        emoji:
+          type: string
+      required:
+        - name
+        - count
+        - trend
+        - emoji
+
+    SavedGeneration:
+      type: object
+      properties:
+        id:
+          type: integer
+        type:
+          type: string
+        title:
+          type: string
+        content:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - type
+        - title
+        - content
+        - createdAt
+
+    SavedGenerationInput:
+      type: object
+      properties:
+        type:
+          type: string
+        title:
+          type: string
+        content:
+          type: string
+      required:
+        - type
+        - title
+        - content
+
+    RealtimeStats:
+      type: object
+      properties:
+        cacheHits:
+          type: integer
+        cacheMisses:
+          type: integer
+        activeUsers:
+          type: integer
+        totalRequests:
+          type: integer
+        topPrompts:
+          type: array
+          items:
+            $ref: "#/components/schemas/PromptStat"
+        valkeyConnected:
+          type: boolean
+        uptime:
+          type: integer
+      required:
+        - cacheHits
+        - cacheMisses
+        - activeUsers
+        - totalRequests
+        - topPrompts
+        - valkeyConnected
+        - uptime
+
+    PromptStat:
+      type: object
+      properties:
+        prompt:
+          type: string
+        count:
+          type: integer
+      required:
+        - prompt
+        - count
